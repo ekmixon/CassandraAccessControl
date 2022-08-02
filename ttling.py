@@ -18,8 +18,7 @@ def reset_password_and_remove(user, session):
         return
     else:
         delete = session.prepare('DELETE FROM ttl_accounts.jit_accounts WHERE username=?')
-        user_to_delete = []
-        user_to_delete.append(user)
+        user_to_delete = [user]
         for username in user_to_delete:
             try:
                 session.execute(delete, [username])
@@ -35,7 +34,7 @@ def ttl_management():
     logger.info('Enrolling TTLING process')
 
     try:
-        logger.info(f'Querying all users from jit_accounts table')
+        logger.info('Querying all users from jit_accounts table')
         usernames = session.execute('select username,expirytimestamp,ttl FROM ttl_accounts.jit_accounts').all()
 
     except Exception:
@@ -44,11 +43,10 @@ def ttl_management():
 
     if usernames:
         for role in usernames:
-            isttlvalid = get_hours_diff(role.expirytimestamp,role.ttl)
-            if not isttlvalid:
+            if isttlvalid := get_hours_diff(role.expirytimestamp, role.ttl):
+                logger.info(f'ttl for {role.username} still not expired. Nothing to do. Exiting TTling process')
+            else:
                 logger.info(f'ttl for {role.username} expired. Enrolling reset and remove from database.')
                 reset_password_and_remove(role.username, session)
-            else:
-                logger.info(f'ttl for {role.username} still not expired. Nothing to do. Exiting TTling process')
     else:
         logger.info('jit_accounts table is empty. Nothing to do. Exiting TTling process')

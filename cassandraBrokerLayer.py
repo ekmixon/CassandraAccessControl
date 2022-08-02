@@ -30,8 +30,7 @@ def cassandra_users_broker(intezer_emails_from_jumpCloud):
         # Checking if user exists in DB
         logger.info(f'Checking if user {user} exists in DB')
         query = session.prepare('select role FROM system_auth.roles where role=?')
-        roles = []
-        roles.append(user)
+        roles = [user]
         for username in roles:
             try:
                 row = session.execute(query, [username]).one()

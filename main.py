@@ -64,7 +64,7 @@ def ask_for_permissions():
         else:
             logger.info(f'Email input is valid. Found {email}')
     else:
-        logger.error(f'Email not found in request')
+        logger.error('Email not found in request')
         return jsonify(message='Email not found in request'), 400
 
 
@@ -76,18 +76,17 @@ def ask_for_permissions():
         else:
             logger.info(f'Permission property is valid. Found {permission}')
     else:
-        logger.error(f'Permission property not found in request')
+        logger.error('Permission property not found in request')
         return jsonify(message='Permission property not found in request'), 400
 
-    env = request.args.get('env')
-    if env:
+    if env := request.args.get('env'):
         if env not in ['PROD', 'STAGE']:
             logger.error(f'Invalid env input. Found {env}. Expected PROD or STAGE')
             return jsonify(message=f'Invalid env property {env}'), 400
         else:
             logger.info(f'env property is valid. Found {env}')
     else:
-        logger.error(f'env property not found in request')
+        logger.error('env property not found in request')
         return jsonify(message='env property not found in request'), 400
 
     user_emails = get_data_from_jumpcloud()
@@ -102,9 +101,8 @@ def ask_for_permissions():
             else:
                 logger.error(f'Process ended with errors. {permission} permissions has not granted to user {email}')
                 return jsonify(message='An Error occured granting onTimeToken'), 401
-    else:
-        logger.error(f'User {email} was not found')
-        return jsonify(message='User not found'), 401
+    logger.error(f'User {email} was not found')
+    return jsonify(message='User not found'), 401
 
 if __name__ == "__main__":
 

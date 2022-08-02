@@ -51,8 +51,7 @@ def reset_password_and_grant(user,permissionsToSet):
 
     #REVOKE ALL PERMISSIONS:
     revoke = session.prepare('SELECT username FROM accounts_ttl.jit_accounts where username=?')
-    user_to_revoke = []
-    user_to_revoke.append(user)
+    user_to_revoke = [user]
     for user_ in user_to_revoke:
         try:
             session.execute(revoke, [user_]).one()
@@ -88,8 +87,7 @@ def check_if_user_has_valid_ttl(user, permission_asked_by_user):
     # if the permission asked found identical to the permission in the DB, the process returns - Has a valid TTL token. else - continue to 3.
 
     query = session.prepare('SELECT username,expirytimestamp,ttl,permission FROM accounts_ttl.jit_accounts where username=?')
-    jumpcloud_users = []
-    jumpcloud_users.append(user)
+    jumpcloud_users = [user]
     for jc_user in jumpcloud_users:
         try:
             rows = session.execute(query,[jc_user]).one()
@@ -97,36 +95,32 @@ def check_if_user_has_valid_ttl(user, permission_asked_by_user):
         except Exception:
             logger.exception(f'Error while querying user {user} from jit_accounts table')
             return
-        if rows:
+        if not rows:
+            # continue to generate new password and permissions
+            return False
             # if rows, passed check # 1
-            for user in rows:
-                is_ttl_valid = get_hours_diff(rows.expirytimestamp,rows.ttl)
-                if is_ttl_valid:
-                    #check # 3
-                    if permission_asked_by_user == rows.permission:
-                        logger.info(f'User {user} found in jit_accounts - Has a valid TTL token')
-                        return True
-                    else:
-                        # continue to generate new password and permissions
-                        return False
+        for user in rows:
+            if is_ttl_valid := get_hours_diff(rows.expirytimestamp, rows.ttl):
+                #check # 3
+                if permission_asked_by_user == rows.permission:
+                    logger.info(f'User {user} found in jit_accounts - Has a valid TTL token')
+                    return True
                 else:
                     # continue to generate new password and permissions
                     return False
-        else:
-            # continue to generate new password and permissions
-            return False
+            else:
+                # continue to generate new password and permissions
+                return False
 
 def cassandra_entry_point(user,permission):
 
     global session
-    session = connect_to_cassandra()
-    if session:
+    if session := connect_to_cassandra():
         user = user.split("@")[0]
 
         logger.info(f'Checking if user {user} TTL still valid')
 
-        is_ttl_valid = check_if_user_has_valid_ttl(user, permission)
-        if is_ttl_valid:
+        if is_ttl_valid := check_if_user_has_valid_ttl(user, permission):
             logger.info(f'TTL token for user {user} is still valid. Will not continue with process')
             return "validttl"
 
@@ -134,8 +128,7 @@ def cassandra_entry_point(user,permission):
         logger.info(f'Checking if user {user} exists in DB')
 
         query = session.prepare('SELECT role FROM system_auth.roles where role=?')
-        user_list = []
-        user_list.append(user)
+        user_list = [user]
         for user in user_list:
             try:
                 query_result = session.execute(query, [user]).one()

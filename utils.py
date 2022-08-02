@@ -11,12 +11,4 @@ def get_hours_diff(expirytimestamp, ttl):
     hoursdiff = diff.seconds / 3600
     expire = ttl - hoursdiff
 
-    if expire >= ttl:
-        # TTL expired
-        return False
-    if expire < 0:
-        # TTL expired
-        return False
-    else:
-        # TTL not expired
-        return True
+    return False if expire >= ttl else expire >= 0
